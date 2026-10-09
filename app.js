@@ -1,14 +1,43 @@
-const setup = {
-  scopeHeightM: 0.059,
-  ballisticCoefficientG1: 0.305,
-  bulletWeightKg: 0.011,
-  defaultZeroM: 100,
-  defaultSpeedMs: 740,
-  distancesM: [
-    50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750,
-    800, 850, 900, 950, 1000,
-  ],
+const rifles = {
+  "308": {
+    id: "308",
+    optionLabel: "Ruger American Predator .308 Win.",
+    eyebrow: ".308 Win ballistic table",
+    scopeName: "Arken EP5 5-25x56 FFP VPR MRAD",
+    scopeHeightM: 0.059,
+    rifleName: "Ruger American Predator .308 Win.",
+    mountNote: "UTG ACCU-SYNC QR 34mm mount",
+    bulletName: "SP 11.0 g / 170 gr",
+    bulletNote: "BC G1 0.305, caliber .308 Win.",
+    ballisticCoefficientG1: 0.305,
+    bulletWeightKg: 0.011,
+    barrelLength: "45.7 cm",
+    speedMeasureDistanceM: 10,
+    defaultZeroM: 100,
+    defaultSpeedMs: 740,
+    defaultTargetM: 300,
+  },
+  "223": {
+    id: "223",
+    optionLabel: "Ruger American Predator .223 Rem.",
+    eyebrow: ".223 Rem ballistic table",
+    scopeName: "Arken EP5 5-25x56 FFP VPR MRAD",
+    scopeHeightM: 0.059,
+    rifleName: "Ruger American Predator .223 Rem.",
+    mountNote: "UTG ACCU-SYNC QR 34mm mount",
+    bulletName: "Speer Gold Dot 75 gr",
+    bulletNote: "BC G1 0.4, caliber .223 Rem.",
+    ballisticCoefficientG1: 0.4,
+    bulletWeightKg: 0.00486,
+    barrelLength: "40.6 cm",
+    speedMeasureDistanceM: 5,
+    defaultZeroM: 100,
+    defaultSpeedMs: 756,
+    defaultTargetM: 300,
+  },
 };
+
+const defaultRifleId = "308";
 
 const constants = {
   gravity: 9.80665,
@@ -17,6 +46,11 @@ const constants = {
   maxSimulationTimeS: 4,
   timeStepS: 0.001,
 };
+
+const distancesM = [
+  50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750,
+  800, 850, 900, 950, 1000,
+];
 
 // Standard G1 retardation coefficients from the GNU exterior ballistics model.
 const g1Segments = [
@@ -65,6 +99,7 @@ const g1Segments = [
 
 const elements = {
   form: document.querySelector("#calculator-form"),
+  rifleSelect: document.querySelector("#rifle-select"),
   zeroDistance: document.querySelector("#zero-distance"),
   muzzleSpeed: document.querySelector("#muzzle-speed"),
   targetDistance: document.querySelector("#target-distance"),
@@ -74,24 +109,35 @@ const elements = {
   caption: document.querySelector("#table-caption"),
   exportPdfButton: document.querySelector("#export-pdf-button"),
   resetButton: document.querySelector("#reset-button"),
+  eyebrow: document.querySelector("#eyebrow"),
+  speedLabel: document.querySelector("#speed-label"),
+  scopeName: document.querySelector("#scope-name"),
+  scopeHeightLabel: document.querySelector("#scope-height-label"),
+  rifleName: document.querySelector("#rifle-name"),
+  rifleMount: document.querySelector("#rifle-mount"),
+  bulletName: document.querySelector("#bullet-name"),
+  bulletNote: document.querySelector("#bullet-note"),
+  barrelLength: document.querySelector("#barrel-length"),
+  barrelNote: document.querySelector("#barrel-note"),
 };
 
 let currentRows = [];
-let currentZeroDistanceM = setup.defaultZeroM;
-let currentSpeedMs = setup.defaultSpeedMs;
+let currentZeroDistanceM = rifles[defaultRifleId].defaultZeroM;
+let currentSpeedMs = rifles[defaultRifleId].defaultSpeedMs;
+let currentRifle = rifles[defaultRifleId];
 
 function g1Retardation(velocityFps) {
   const segment = g1Segments.find((entry) => velocityFps >= entry.minFps) ?? g1Segments[g1Segments.length - 1];
   return segment.a * Math.pow(velocityFps, segment.m);
 }
 
-function dragAccelerationMs(velocityMs) {
+function dragAccelerationMs(velocityMs, ballisticCoefficientG1) {
   if (velocityMs <= 0) {
     return 0;
   }
 
   const velocityFps = velocityMs * constants.feetPerMeter;
-  const retardationFps2 = g1Retardation(velocityFps) / setup.ballisticCoefficientG1;
+  const retardationFps2 = g1Retardation(velocityFps) / ballisticCoefficientG1;
   return retardationFps2 * constants.metersPerFoot;
 }
 
@@ -108,13 +154,13 @@ function interpolateAtRange(previous, current, targetX) {
   };
 }
 
-function simulateTrajectory(angleRad, speedMs, targetRangesM) {
+function simulateTrajectory(angleRad, speedMs, targetRangesM, rifle) {
   const sortedRanges = [...targetRangesM].sort((a, b) => a - b);
   const results = new Map();
   let rangeIndex = 0;
   let state = {
     x: 0,
-    y: -setup.scopeHeightM,
+    y: -rifle.scopeHeightM,
     vx: Math.cos(angleRad) * speedMs,
     vy: Math.sin(angleRad) * speedMs,
     time: 0,
@@ -123,7 +169,7 @@ function simulateTrajectory(angleRad, speedMs, targetRangesM) {
   while (state.time < constants.maxSimulationTimeS && rangeIndex < sortedRanges.length) {
     const previous = { ...state };
     const speed = Math.hypot(state.vx, state.vy);
-    const drag = dragAccelerationMs(speed);
+    const drag = dragAccelerationMs(speed, rifle.ballisticCoefficientG1);
     const ax = speed === 0 ? 0 : -(drag * state.vx) / speed;
     const ay = speed === 0 ? -constants.gravity : -constants.gravity - (drag * state.vy) / speed;
 
@@ -143,17 +189,17 @@ function simulateTrajectory(angleRad, speedMs, targetRangesM) {
   return results;
 }
 
-function heightAtRange(angleRad, speedMs, rangeM) {
-  return simulateTrajectory(angleRad, speedMs, [rangeM]).get(rangeM)?.y ?? Number.NaN;
+function heightAtRange(angleRad, speedMs, rangeM, rifle) {
+  return simulateTrajectory(angleRad, speedMs, [rangeM], rifle).get(rangeM)?.y ?? Number.NaN;
 }
 
-function findZeroAngle(speedMs, zeroDistanceM) {
+function findZeroAngle(speedMs, zeroDistanceM, rifle) {
   let low = -0.05;
   let high = 0.05;
 
   for (let attempts = 0; attempts < 8; attempts += 1) {
-    const lowHeight = heightAtRange(low, speedMs, zeroDistanceM);
-    const highHeight = heightAtRange(high, speedMs, zeroDistanceM);
+    const lowHeight = heightAtRange(low, speedMs, zeroDistanceM, rifle);
+    const highHeight = heightAtRange(high, speedMs, zeroDistanceM, rifle);
 
     if (Number.isFinite(lowHeight) && Number.isFinite(highHeight) && lowHeight <= 0 && highHeight >= 0) {
       break;
@@ -165,7 +211,7 @@ function findZeroAngle(speedMs, zeroDistanceM) {
 
   for (let i = 0; i < 40; i += 1) {
     const mid = (low + high) / 2;
-    const midHeight = heightAtRange(mid, speedMs, zeroDistanceM);
+    const midHeight = heightAtRange(mid, speedMs, zeroDistanceM, rifle);
 
     if (midHeight > 0) {
       high = mid;
@@ -177,12 +223,12 @@ function findZeroAngle(speedMs, zeroDistanceM) {
   return (low + high) / 2;
 }
 
-function createResultRow(distanceM, sample) {
+function createResultRow(distanceM, sample, rifle) {
   const velocityMs = Math.hypot(sample.vx, sample.vy);
   const dropM = sample.y;
   const holdMrad = (-dropM / distanceM) * 1000;
   const clicks = holdMrad / 0.1;
-  const energyJ = 0.5 * setup.bulletWeightKg * velocityMs ** 2;
+  const energyJ = 0.5 * rifle.bulletWeightKg * velocityMs ** 2;
 
   return {
     distanceM,
@@ -195,23 +241,23 @@ function createResultRow(distanceM, sample) {
   };
 }
 
-function calculateRowsForDistances(distancesM, zeroDistanceM, speedMs) {
-  const targetRanges = Array.from(new Set([...distancesM, zeroDistanceM])).sort((a, b) => a - b);
-  const zeroAngle = findZeroAngle(speedMs, zeroDistanceM);
-  const trajectory = simulateTrajectory(zeroAngle, speedMs, targetRanges);
+function calculateRowsForDistances(distances, zeroDistanceM, speedMs, rifle) {
+  const targetRanges = Array.from(new Set([...distances, zeroDistanceM])).sort((a, b) => a - b);
+  const zeroAngle = findZeroAngle(speedMs, zeroDistanceM, rifle);
+  const trajectory = simulateTrajectory(zeroAngle, speedMs, targetRanges, rifle);
 
-  return distancesM.map((distanceM) => {
+  return distances.map((distanceM) => {
     const sample = trajectory.get(distanceM);
     if (!sample) {
       throw new Error(`Could not calculate trajectory at ${distanceM} m.`);
     }
 
-    return createResultRow(distanceM, sample);
+    return createResultRow(distanceM, sample, rifle);
   });
 }
 
-function calculateTable(zeroDistanceM, speedMs) {
-  return calculateRowsForDistances(setup.distancesM, zeroDistanceM, speedMs);
+function calculateTable(zeroDistanceM, speedMs, rifle) {
+  return calculateRowsForDistances(distancesM, zeroDistanceM, speedMs, rifle);
 }
 
 function validateInputs(zeroDistanceM, speedMs) {
@@ -237,6 +283,19 @@ function validateTargetDistance(distanceM) {
 function formatSigned(value, digits = 1) {
   const formatted = Math.abs(value) < 0.0005 ? 0 : value;
   return `${formatted > 0 ? "+" : ""}${formatted.toFixed(digits)}`;
+}
+
+function renderRifleInfo(rifle) {
+  elements.eyebrow.textContent = rifle.eyebrow;
+  elements.speedLabel.textContent = `Speed at ${rifle.speedMeasureDistanceM} m`;
+  elements.scopeName.textContent = rifle.scopeName;
+  elements.scopeHeightLabel.textContent = `Scope height: ${Math.round(rifle.scopeHeightM * 1000)} mm`;
+  elements.rifleName.textContent = rifle.rifleName;
+  elements.rifleMount.textContent = rifle.mountNote;
+  elements.bulletName.textContent = rifle.bulletName;
+  elements.bulletNote.textContent = rifle.bulletNote;
+  elements.barrelLength.textContent = rifle.barrelLength;
+  elements.barrelNote.textContent = `Speed measured ${rifle.speedMeasureDistanceM} m from bore`;
 }
 
 function renderTable(rows, zeroDistanceM, speedMs) {
@@ -287,7 +346,7 @@ function createPdfRowsMarkup(rows) {
 
 function exportPdfA5() {
   const exportDistances = Array.from({ length: 12 }, (_, index) => (index + 1) * 25);
-  const exportRows = calculateRowsForDistances(exportDistances, currentZeroDistanceM, currentSpeedMs);
+  const exportRows = calculateRowsForDistances(exportDistances, currentZeroDistanceM, currentSpeedMs, currentRifle);
   if (exportRows.length === 0) {
     showError("No rows available to export.");
     return;
@@ -304,7 +363,7 @@ function exportPdfA5() {
     <html lang="en">
       <head>
         <meta charset="utf-8">
-        <title>Ballistic Stock Card</title>
+        <title>Ballistic Stock Card &ndash; ${currentRifle.rifleName}</title>
         <style>
           @page {
             size: A5 portrait;
@@ -327,6 +386,14 @@ function exportPdfA5() {
             height: 60mm;
             margin-left: 3mm;
             padding: 1.4mm;
+            overflow: hidden;
+          }
+
+          .stock-card .card-title {
+            margin: 0 0 0.6mm;
+            font-size: calc(4.6pt + 4px);
+            font-weight: bold;
+            white-space: nowrap;
             overflow: hidden;
           }
 
@@ -362,6 +429,7 @@ function exportPdfA5() {
       </head>
       <body>
         <main class="stock-card">
+          <p class="card-title">${currentRifle.rifleName}</p>
           <table>
             <tbody>
               ${createPdfRowsMarkup(exportRows)}
@@ -389,6 +457,9 @@ function showTargetPlaceholder(message) {
 }
 
 function recalculate() {
+  const rifle = rifles[elements.rifleSelect.value] ?? rifles[defaultRifleId];
+  currentRifle = rifle;
+
   const zeroDistanceM = Number(elements.zeroDistance.value);
   const speedMs = Number(elements.muzzleSpeed.value);
   const targetDistanceM = Number(elements.targetDistance.value);
@@ -408,8 +479,8 @@ function recalculate() {
   }
 
   try {
-    const rows = calculateTable(zeroDistanceM, speedMs);
-    const [targetRow] = calculateRowsForDistances([targetDistanceM], zeroDistanceM, speedMs);
+    const rows = calculateTable(zeroDistanceM, speedMs, rifle);
+    const [targetRow] = calculateRowsForDistances([targetDistanceM], zeroDistanceM, speedMs, rifle);
     renderTable(rows, zeroDistanceM, speedMs);
     renderTargetResult(targetRow);
     showError("");
@@ -419,13 +490,19 @@ function recalculate() {
   }
 }
 
+function applyRifleDefaults() {
+  const rifle = rifles[elements.rifleSelect.value] ?? rifles[defaultRifleId];
+  renderRifleInfo(rifle);
+  elements.zeroDistance.value = rifle.defaultZeroM;
+  elements.muzzleSpeed.value = rifle.defaultSpeedMs;
+  elements.targetDistance.value = rifle.defaultTargetM;
+  recalculate();
+}
+
+elements.rifleSelect.addEventListener("change", applyRifleDefaults);
 elements.form.addEventListener("input", recalculate);
 elements.exportPdfButton.addEventListener("click", exportPdfA5);
-elements.resetButton.addEventListener("click", () => {
-  elements.zeroDistance.value = setup.defaultZeroM;
-  elements.muzzleSpeed.value = setup.defaultSpeedMs;
-  elements.targetDistance.value = 300;
-  recalculate();
-});
+elements.resetButton.addEventListener("click", applyRifleDefaults);
 
-recalculate();
+elements.rifleSelect.value = defaultRifleId;
+applyRifleDefaults();

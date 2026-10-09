@@ -10,26 +10,35 @@
     <main class="app-shell">
       <section class="hero">
         <div>
-          <p class="eyebrow">.308 Win ballistic table</p>
+          <p class="eyebrow" id="eyebrow">.308 Win ballistic table</p>
           <h1>Ruger American Predator calculator</h1>
           <p class="lede">
             Estimate drop, elevation hold, velocity, time of flight, and energy for the
-            selected zero and measured speed.
+            selected rifle, zero distance, and measured speed.
           </p>
         </div>
         <div class="scope-card" aria-label="Scope setup">
           <span>Scope</span>
-          <strong>Arken EP5 5-25x56 FFP VPR MRAD</strong>
-          <small>Scope height: 59 mm</small>
+          <strong id="scope-name">Arken EP5 5-25x56 FFP VPR MRAD</strong>
+          <small id="scope-height-label">Scope height: 59 mm</small>
         </div>
       </section>
 
       <section class="panel controls" aria-labelledby="inputs-title">
         <div>
           <h2 id="inputs-title">Editable inputs</h2>
-          <p>Change zero distance or speed to recalculate the table.</p>
+          <p>Pick the rifle, then change zero distance or speed to recalculate the table.</p>
         </div>
         <form id="calculator-form" class="input-grid">
+          <label class="rifle-select-label">
+            <span>Rifle</span>
+            <span class="input-with-unit">
+              <select id="rifle-select" name="rifle">
+                <option value="308">Ruger American Predator .308 Win.</option>
+                <option value="223">Ruger American Predator .223 Rem.</option>
+              </select>
+            </span>
+          </label>
           <label>
             <span>Zero distance</span>
             <span class="input-with-unit">
@@ -38,7 +47,7 @@
             </span>
           </label>
           <label>
-            <span>Speed at 10 m</span>
+            <span id="speed-label">Speed at 10 m</span>
             <span class="input-with-unit">
               <input id="muzzle-speed" name="muzzleSpeed" type="number" min="100" max="1500" step="1" value="740" required>
               <span>m/s</span>
@@ -51,7 +60,7 @@
               <span>m</span>
             </span>
           </label>
-          <output id="target-result" class="target-result" for="zero-distance muzzle-speed target-distance">
+          <output id="target-result" class="target-result" for="rifle-select zero-distance muzzle-speed target-distance">
             Enter a target distance.
           </output>
         </form>
@@ -61,18 +70,18 @@
       <section class="summary-grid" aria-label="Fixed setup values">
         <article class="panel stat-card">
           <span>Rifle</span>
-          <strong>Ruger American Predator .308</strong>
-          <small>UTG ACCU-SYNC QR 34mm mount</small>
+          <strong id="rifle-name">Ruger American Predator .308 Win.</strong>
+          <small id="rifle-mount">UTG ACCU-SYNC QR 34mm mount</small>
         </article>
         <article class="panel stat-card">
           <span>Bullet</span>
-          <strong>SP 11.0 g / 170 gr</strong>
-          <small>BC G1 0.305, caliber .308 Win.</small>
+          <strong id="bullet-name">SP 11.0 g / 170 gr</strong>
+          <small id="bullet-note">BC G1 0.305, caliber .308 Win.</small>
         </article>
         <article class="panel stat-card">
           <span>Barrel</span>
-          <strong>45.7 cm</strong>
-          <small>Speed measured 10 m from bore</small>
+          <strong id="barrel-length">45.7 cm</strong>
+          <small id="barrel-note">Speed measured 10 m from bore</small>
         </article>
       </section>
 
