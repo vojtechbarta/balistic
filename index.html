@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ballistic Calculator</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">.308 Win ballistic table</p>
+          <h1>Ruger American Predator calculator</h1>
+          <p class="lede">
+            Estimate drop, elevation hold, velocity, time of flight, and energy for the
+            selected zero and measured speed.
+          </p>
+        </div>
+        <div class="scope-card" aria-label="Scope setup">
+          <span>Scope</span>
+          <strong>Arken EP5 5-25x56 FFP VPR MRAD</strong>
+          <small>Scope height: 59 mm</small>
+        </div>
+      </section>
+
+      <section class="panel controls" aria-labelledby="inputs-title">
+        <div>
+          <h2 id="inputs-title">Editable inputs</h2>
+          <p>Change zero distance or speed to recalculate the table.</p>
+        </div>
+        <form id="calculator-form" class="input-grid">
+          <label>
+            <span>Zero distance</span>
+            <span class="input-with-unit">
+              <input id="zero-distance" name="zeroDistance" type="number" min="25" max="1000" step="1" value="100" required>
+              <span>m</span>
+            </span>
+          </label>
+          <label>
+            <span>Speed at 10 m</span>
+            <span class="input-with-unit">
+              <input id="muzzle-speed" name="muzzleSpeed" type="number" min="100" max="1500" step="1" value="740" required>
+              <span>m/s</span>
+            </span>
+          </label>
+          <label>
+            <span>Target distance</span>
+            <span class="input-with-unit">
+              <input id="target-distance" name="targetDistance" type="number" min="25" max="1000" step="1" value="300" required>
+              <span>m</span>
+            </span>
+          </label>
+          <output id="target-result" class="target-result" for="zero-distance muzzle-speed target-distance">
+            Enter a target distance.
+          </output>
+        </form>
+        <p id="error-message" class="error-message" role="alert" hidden></p>
+      </section>
+
+      <section class="summary-grid" aria-label="Fixed setup values">
+        <article class="panel stat-card">
+          <span>Rifle</span>
+          <strong>Ruger American Predator .308</strong>
+          <small>UTG ACCU-SYNC QR 34mm mount</small>
+        </article>
+        <article class="panel stat-card">
+          <span>Bullet</span>
+          <strong>SP 11.0 g / 170 gr</strong>
+          <small>BC G1 0.305, caliber .308 Win.</small>
+        </article>
+        <article class="panel stat-card">
+          <span>Barrel</span>
+          <strong>45.7 cm</strong>
+          <small>Speed measured 10 m from bore</small>
+        </article>
+      </section>
+
+      <section class="panel table-panel" aria-labelledby="table-title">
+        <div class="table-header">
+          <div>
+            <h2 id="table-title">Range table</h2>
+            <p id="table-caption">Calculated for a 100 m zero and 740 m/s speed.</p>
+          </div>
+          <div class="button-row">
+            <button id="export-pdf-button" type="button">Export PDF A5</button>
+            <button id="reset-button" type="button">Reset defaults</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Distance</th>
+                <th>Drop</th>
+                <th>Elevation hold</th>
+                <th>Clicks</th>
+                <th>Velocity</th>
+                <th>Time</th>
+                <th>Energy</th>
+              </tr>
+            </thead>
+            <tbody id="results-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="note" aria-label="Safety note">
+        <strong>Range note:</strong>
+        This is a calculator estimate using standard atmosphere and a G1 drag model.
+        Confirm real impacts at the range before using these holds.
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
